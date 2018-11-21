@@ -1,22 +1,16 @@
 package msgp
 
-import (
-	"bytes"
-)
-
 // InterceptField intercept the next object bytes with field.
 func (m *Reader) InterceptField(field []byte) (object []byte, err error) {
 	b, err := m.next()
 	if err != nil {
 		return
 	}
-	var buf = bytes.NewBuffer(nil)
-	var enc = NewWriter(buf)
-	enc.WriteMapHeader(1)
-	enc.WriteBytes(field)
-	enc.Write(b)
-	enc.Flush()
-	return buf.Bytes(), nil
+	object = make([]byte, 0, len(b)+32)
+	object = AppendMapHeader(object, 1)
+	object = AppendString(object, UnsafeString(field))
+	object = append(object, b...)
+	return object, nil
 }
 
 func (m *Reader) next() (b []byte, err error) {
@@ -69,11 +63,9 @@ func InterceptField(field []byte, b []byte) (object, last []byte, err error) {
 	if err != nil {
 		return
 	}
-	var buf = bytes.NewBuffer(nil)
-	var enc = NewWriter(buf)
-	enc.WriteMapHeader(1)
-	enc.WriteBytes(field)
-	enc.Write(b[:len(b)-len(last)])
-	enc.Flush()
-	return buf.Bytes(), last, nil
+	object = make([]byte, 0, len(b)+32)
+	object = AppendMapHeader(object, 1)
+	object = AppendString(object, UnsafeString(field))
+	object = append(object, b[:len(b)-len(last)]...)
+	return object, last, nil
 }
