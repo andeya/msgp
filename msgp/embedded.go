@@ -65,7 +65,7 @@ func (m *Reader) next() (b []byte, err error) {
 
 // InterceptField intercept the next object bytes with field.
 func InterceptField(field []byte, b []byte) (object, last []byte, err error) {
-	object, last, err = next(b)
+	last, err = Skip(b)
 	if err != nil {
 		return
 	}
@@ -73,29 +73,7 @@ func InterceptField(field []byte, b []byte) (object, last []byte, err error) {
 	var enc = NewWriter(buf)
 	enc.WriteMapHeader(1)
 	enc.WriteBytes(field)
-	enc.Write(object)
+	enc.Write(b[:len(b)-len(last)])
 	enc.Flush()
 	return buf.Bytes(), last, nil
-}
-
-func next(b []byte) (object, last []byte, err error) {
-	sz, asz, err := getSize(b)
-	if err != nil {
-		return object, b, err
-	}
-	if uintptr(len(b)) < sz {
-		return object, b, ErrShortBytes
-	}
-	object = b[:sz]
-	last = b[sz:]
-	var obj []byte
-	for asz > 0 {
-		obj, last, err = next(last)
-		if err != nil {
-			return object, last, err
-		}
-		object = append(object, obj...)
-		asz--
-	}
-	return object, last, nil
 }
